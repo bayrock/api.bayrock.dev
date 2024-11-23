@@ -1,0 +1,8 @@
+{
+    "outputDirectory": "public",
+    "git": {
+      "deploymentEnabled": {
+        "main": false
+      }
+    }
+  }

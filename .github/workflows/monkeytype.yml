@@ -1,0 +1,61 @@
+name: Monkeytype Hourly Data Fetch
+
+on:
+  schedule:
+    - cron: "0 * * * *" # Runs every hour
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  fetch-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Fetch data from Monkeytype
+        run: |
+          qwerty_response=$(curl -s -w "%{http_code}" -o qwerty_data.json "https://api.monkeytype.com/users/wwezGtenkPeTFJTioEK0KZcXWXq1/profile?isUid")
+          canary_response=$(curl -s -w "%{http_code}" -o canary_data.json "https://api.monkeytype.com/users/129CxSj68DhL8PbgNBxazC8oOa73/profile?isUid")
+
+          if [[ "$qwerty_response" != "200" || "$canary_response" != "200" ]]; then
+            echo "Error: Failed to fetch Monkeytype data!"
+            exit 1
+          fi
+
+          qwerty_data=$(echo "$qwerty_response" | jq '{stats: .data.typingStats, bests: .data.personalBests}')
+          canary_data=$(echo "$canary_response" | jq '{stats: .data.typingStats, bests: .data.personalBests}')
+
+          echo "{\"qwerty\": $qwerty_data, \"canary\": $canary_data}" > temp_data.json
+
+          rm qwerty_data.json canary_data.json
+
+      - name: Check for changes
+        run: |
+          curl -s -o cache_data.json "https://apibayrockdev.vercel.app/monkeytype.json"
+          if [ ! -s cache_data.json ]; then
+            echo "Error: Failed to fetch cache data!"
+            exit 1
+          fi
+
+          if cmp --silent temp_data.json cache_data.json; then
+            echo "No changes detected; skipping deployment."
+            echo "changes_detected=false" >> $GITHUB_ENV
+            exit 0
+          else
+            echo "Changes detected; proceeding with deployment."
+            echo "changes_detected=true" >> $GITHUB_ENV
+          fi
+
+      - name: Update API data
+        if: env.changes_detected == 'true'
+        run: |
+          mkdir -p ./public
+          mv temp_data.json ./public/monkeytype.json
+
+      - name: Deploy to Vercel
+        if: env.changes_detected == 'true'
+        run: vercel deploy --prod --yes --scope=${{ secrets.VERCEL_ORG_ID }} --token=${{ secrets.VERCEL_TOKEN }}
