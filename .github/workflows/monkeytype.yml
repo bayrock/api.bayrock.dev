@@ -26,8 +26,8 @@ jobs:
             exit 1
           fi
 
-          qwerty_data=$(echo "$qwerty_response" | jq '{stats: .data.typingStats, bests: .data.personalBests}')
-          canary_data=$(echo "$canary_response" | jq '{stats: .data.typingStats, bests: .data.personalBests}')
+          qwerty_data=$(jq '{stats: .data.typingStats, bests: .data.personalBests}' qwerty_data.json)
+          canary_data=$(jq '{stats: .data.typingStats, bests: .data.personalBests}' canary_data.json)
 
           echo "{\"qwerty\": $qwerty_data, \"canary\": $canary_data}" > temp_data.json
 
