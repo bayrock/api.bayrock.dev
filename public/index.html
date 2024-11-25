@@ -1,9 +1,35 @@
-<main>
-    <a href="https://bayrock.dev">bayrock.dev</a> API
-    <h2>endpoints:</h2>
-    <ul>
-        <li><a href="/monkeytype.json">monkeytype</a></li>
-        <li><a href="/lastfm.json">lastfm</a></li>
-    </ul>
-</main>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>bayrock.dev API</title>
+    </head>
+    <body>
+        <main>
+            <a href="https://bayrock.dev">bayrock.dev</a> API
+            <h2>endpoints:</h2>
+            <ul id="file-list">
+                <!-- Links will be dynamically inserted here -->
+            </ul>
+        </main>
 
+        <script>
+            fetch('/endpoints.json')
+                .then(response => response.json())
+                .then(data => {
+                    const fileList = document.getElementById('file-list');
+
+                    data.files.forEach(file => {
+                        const listItem = document.createElement('li');
+                        const link = document.createElement('a');
+                        link.href = `/${file}`;
+                        link.textContent = file;
+                        listItem.appendChild(link);
+                        fileList.appendChild(listItem);
+                    });
+                })
+                .catch(error => console.error('Error fetching file list:', error));
+        </script>
+    </body>
+</html>
