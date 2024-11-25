@@ -60,7 +60,8 @@ jobs:
             curl -s "https://apibayrockdev.vercel.app/$file" -o "public/$file"
           done
 
-          mv temp_data.json "./public/$OUTPUT_FILE"
+          timestamp=$(date +%s)
+          echo "{\"updated\":$timestamp,$(cat temp_data.json)}" > "./public/$OUTPUT_FILE"
 
       - name: Deploy to Vercel
         if: env.no_changes == null
