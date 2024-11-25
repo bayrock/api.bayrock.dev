@@ -34,7 +34,6 @@ jobs:
           rm loved_data.json recent_data.json
 
       - name: Check for changes
-        if: env.SKIP_LASTFM_CHECK != 'true'
         run: |
           curl -s -o cache_data.json "https://apibayrockdev.vercel.app/lastfm.json"
           if [ ! -s cache_data.json ]; then
