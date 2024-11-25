@@ -28,10 +28,10 @@ jobs:
             exit 1
           fi
 
-          qwerty_data=$(jq '{stats: .data.typingStats, bests: .data.personalBests}' qwerty_data.json)
-          canary_data=$(jq '{stats: .data.typingStats, bests: .data.personalBests}' canary_data.json)
+          qwerty_data=$(jq -c '{stats: .data.typingStats, bests: .data.personalBests}' qwerty_data.json)
+          canary_data=$(jq -c '{stats: .data.typingStats, bests: .data.personalBests}' canary_data.json)
 
-          echo "{\"qwerty\": $qwerty_data, \"canary\": $canary_data}" > temp_data.json
+          echo "{\"qwerty\":$qwerty_data,\"canary\":$canary_data}" > temp_data.json
 
           rm qwerty_data.json canary_data.json
 

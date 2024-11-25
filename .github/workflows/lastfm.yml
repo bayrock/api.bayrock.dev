@@ -28,10 +28,10 @@ jobs:
             exit 1
           fi
 
-          loved_data=$(jq '.lovedtracks.track[0]' loved_data.json)
-          recent_data=$(jq '.recenttracks.track' recent_data.json)
+          loved_data=$(jq -c '.lovedtracks.track[0]' loved_data.json)
+          recent_data=$(jq -c '.recenttracks.track' recent_data.json)
 
-          echo "{\"obsession\": $loved_data, \"recent\": $recent_data}" > temp_data.json
+          echo "{\"obsession\":$loved_data,\"recent\":$recent_data}" > temp_data.json
 
           rm loved_data.json recent_data.json
 
