@@ -8,6 +8,8 @@ on:
 jobs:
   fetch-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      OUTPUT_FILE: "monkeytype.json"
 
     steps:
       - name: Checkout code
@@ -35,27 +37,31 @@ jobs:
 
       - name: Check for changes
         run: |
-          curl -s -o cache_data.json "https://apibayrockdev.vercel.app/monkeytype.json"
-          if [ ! -s cache_data.json ]; then
-            echo "Error: Failed to fetch cache data!"
-            exit 1
-          fi
+          curl -s -o cache_data.json "https://apibayrockdev.vercel.app/$OUTPUT_FILE"
 
           if cmp --silent temp_data.json cache_data.json; then
             echo "No changes detected; skipping deployment."
-            echo "changes_detected=false" >> $GITHUB_ENV
+            echo "no_changes=true" >> $GITHUB_ENV
             exit 0
           else
             echo "Changes detected; proceeding with deployment."
-            echo "changes_detected=true" >> $GITHUB_ENV
           fi
 
       - name: Update API data
-        if: env.changes_detected == 'true'
+        if: env.no_changes == null
         run: |
-          mkdir -p ./public
-          mv temp_data.json ./public/monkeytype.json
+          if [ ! -f "public/endpoints.json" ]; then
+            echo "Error: Failed to locate endpoints.json!"
+            exit 1
+          fi
+
+          for file in $(jq -r '.files[]' public/endpoints.json); do
+            if [[ "$file" == "$OUTPUT_FILE" ]]; then continue; fi
+            curl -s "https://apibayrockdev.vercel.app/$file" -o "public/$file"
+          done
+
+          mv temp_data.json "./public/$OUTPUT_FILE"
 
       - name: Deploy to Vercel
-        if: env.changes_detected == 'true'
+        if: env.no_changes == null
         run: vercel deploy --prod --yes --scope=${{ secrets.VERCEL_ORG_ID }} --token=${{ secrets.VERCEL_TOKEN }}
