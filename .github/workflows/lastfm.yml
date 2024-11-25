@@ -1,0 +1,61 @@
+name: Last.fm Hourly Data Fetch
+
+on:
+  schedule:
+    - cron: "0 * * * *" # Runs every hour
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  fetch-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Fetch data from Last.fm
+        run: |
+          loved_response=$(curl -s -w "%{http_code}" -o loved_data.json "http://ws.audioscrobbler.com/2.0/?method=user.getlovedtracks&user=bayrock&api_key=${{ secrets.LASTFM_API_KEY }}&limit=1&format=json")
+          recent_response=$(curl -s -w "%{http_code}" -o recent_data.json "http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=bayrock&api_key=${{ secrets.LASTFM_API_KEY }}&limit=10&format=json")
+
+          if [[ "$loved_response" != "200" || "$recent_response" != "200" ]]; then
+            echo "Error: Failed to fetch Last.fm data!"
+            exit 1
+          fi
+
+          loved_data=$(jq '{lovedTracks: .lovedtracks.track[0]}' loved_data.json)
+          recent_data=$(jq '{recentTracks: .recenttracks.track}' recent_data.json)
+
+          echo "{\"obsession\": $loved_data, \"recent\": $recent_data}" > temp_data.json
+
+          rm loved_data.json recent_data.json
+
+      - name: Check for changes
+        if: env.SKIP_LASTFM_CHECK != 'true'
+        run: |
+          curl -s -o cache_data.json "https://apibayrockdev.vercel.app/lastfm.json"
+          if [ ! -s cache_data.json ]; then
+            echo "Error: Failed to fetch cache data!"
+            exit 1
+          fi
+
+          if cmp --silent temp_data.json cache_data.json; then
+            echo "No changes detected; skipping deployment."
+            echo "no_changes=true" >> $GITHUB_ENV
+            exit 0
+          else
+            echo "Changes detected; proceeding with deployment."
+          fi
+
+      - name: Update API data
+        if: env.no_changes == null
+        run: |
+          mkdir -p ./public
+          mv temp_data.json ./public/lastfm.json
+
+      - name: Deploy to Vercel
+        if: env.no_changes == null
+        run: vercel deploy --prod --yes --scope=${{ secrets.VERCEL_ORG_ID }} --token=${{ secrets.VERCEL_TOKEN }}
