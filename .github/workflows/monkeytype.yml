@@ -1,8 +1,8 @@
-name: Monkeytype Hourly Data Fetch
+name: Monkeytype Daily Data Fetch
 
 on:
   schedule:
-    - cron: "0 * * * *" # Runs every hour
+    - cron: "0 5 * * *" # Runs daily at midnight EST
   workflow_dispatch: # Allows manual triggering of the workflow
 
 jobs:
