@@ -35,20 +35,29 @@ jobs:
 
           rm qwerty_data.json canary_data.json
 
+      - name: Restore Cache
+        uses: actions/cache@v3
+        with:
+          path: public
+          key: public-cache
+
       - name: Check for changes
         run: |
-          curl -s -o cache_data.json "https://apibayrockdev.vercel.app/$OUTPUT_FILE"
+          if [ ! -f "public/$OUTPUT_FILE" ]; then
+            echo "Cache not found; restoring from Vercel."
+            echo "fallback=true" >> $GITHUB_ENV
+            exit 0
+          fi
 
-          if cmp --silent <(jq -c 'del(.updated)' cache_data.json) temp_data.json; then
+          if cmp --silent <(jq -c 'del(.updated)' "public/$OUTPUT_FILE") temp_data.json; then
             echo "No changes detected; skipping deployment."
             echo "no_changes=true" >> $GITHUB_ENV
-            exit 0
           else
             echo "Changes detected; proceeding with deployment."
           fi
 
-      - name: Update API data
-        if: env.no_changes == null
+      - name: Fallback to Vercel cache
+        if: env.fallback == true
         run: |
           if [ ! -f "public/endpoints.json" ]; then
             echo "Error: Failed to locate endpoints.json!"
@@ -60,7 +69,17 @@ jobs:
             curl -s "https://apibayrockdev.vercel.app/$file" -o "public/$file"
           done
 
-          jq -c --argjson timestamp "$(date +%s)" '. + {updated:$timestamp}' temp_data.json > "./public/$OUTPUT_FILE"
+      - name: Update API data
+        if: env.no_changes == null
+        run: |
+          jq -c --argjson timestamp "$(date +%s)" '. + {updated:$timestamp}' temp_data.json > "public/$OUTPUT_FILE"
+
+      - name: Cache API data
+        if: env.no_changes == null
+        uses: actions/cache@v3
+        with:
+          path: public
+          key: public-cache
 
       - name: Deploy to Vercel
         if: env.no_changes == null
