@@ -39,7 +39,7 @@ jobs:
         run: |
           curl -s -o cache_data.json "https://apibayrockdev.vercel.app/$OUTPUT_FILE"
 
-          if cmp --silent <(jq 'del(.updated)' cache_data.json) temp_data.json; then
+          if cmp --silent <(jq -c 'del(.updated)' cache_data.json) temp_data.json; then
             echo "No changes detected; skipping deployment."
             echo "no_changes=true" >> $GITHUB_ENV
             exit 0
