@@ -41,23 +41,15 @@ jobs:
           path: public
           key: public-cache
 
-      - name: Check for changes
+      - name: Validate cache
         run: |
           if [ ! -f "public/$OUTPUT_FILE" ]; then
             echo "Cache not found; restoring from Vercel."
             echo "fallback=true" >> $GITHUB_ENV
-            exit 0
-          fi
-
-          if cmp --silent <(jq -c 'del(.updated)' "public/$OUTPUT_FILE") temp_data.json; then
-            echo "No changes detected; skipping deployment."
-            echo "no_changes=true" >> $GITHUB_ENV
-          else
-            echo "Changes detected; proceeding with deployment."
           fi
 
       - name: Fallback to Vercel cache
-        if: env.fallback == true
+        if: env.fallback == 'true'
         run: |
           if [ ! -f "public/endpoints.json" ]; then
             echo "Error: Failed to locate endpoints.json!"
@@ -68,6 +60,15 @@ jobs:
             if [[ "$file" == "$OUTPUT_FILE" ]]; then continue; fi
             curl -s "https://api.bayrock.dev/$file" -o "public/$file"
           done
+
+      - name: Check for changes
+        run: |
+          if cmp --silent <(jq -c 'del(.updated)' "public/$OUTPUT_FILE") temp_data.json; then
+            echo "No changes detected; skipping deployment."
+            echo "no_changes=true" >> $GITHUB_ENV
+          else
+            echo "Changes detected; proceeding with deployment."
+          fi
 
       - name: Update API data
         if: env.no_changes == null
