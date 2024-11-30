@@ -4,5 +4,16 @@
       "deploymentEnabled": {
         "main": false
       }
-    }
+    },
+    "headers": [
+      {
+        "source": "/(.*).json",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=3600, stale-while-revalidate=86400"
+          }
+        ]
+      }
+    ]
   }
