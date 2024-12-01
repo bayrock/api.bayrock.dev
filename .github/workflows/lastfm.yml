@@ -56,7 +56,7 @@ jobs:
             exit 1
           fi
 
-          for file in $(jq -r '.files[]' public/endpoints.json); do
+          for file in $(jq -r '.files[]' "public/endpoints.json"); do
             curl -s "https://api.bayrock.dev/$file" -o "public/$file"
           done
 
@@ -72,7 +72,7 @@ jobs:
       - name: Update API data
         if: env.no_changes == null
         run: |
-          jq -c --argjson timestamp "$(date +%s)" '. + {updated:$timestamp}' temp_data.json > "./public/$OUTPUT_FILE"
+          jq -c --argjson timestamp "$(date +%s)" '. + {updated:$timestamp}' temp_data.json > "public/$OUTPUT_FILE"
 
       - name: Cache API data
         if: env.no_changes == null
