@@ -74,6 +74,9 @@ jobs:
         run: |
           jq -c --argjson timestamp "$(date +%s)" '. + {updated:$timestamp}' temp_data.json > "public/$OUTPUT_FILE"
 
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
       - name: Deploy to Vercel
         if: env.no_changes == null
         run: vercel deploy --prod --yes --scope=${{ secrets.VERCEL_ORG_ID }} --token=${{ secrets.VERCEL_TOKEN }}
