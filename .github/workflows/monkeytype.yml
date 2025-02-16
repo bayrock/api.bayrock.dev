@@ -20,20 +20,24 @@ jobs:
 
       - name: Fetch data from Monkeytype
         run: |
-          qwerty_response=$(curl -s -w "%{http_code}" -o qwerty_data.json "https://api.monkeytype.com/users/wwezGtenkPeTFJTioEK0KZcXWXq1/profile?isUid")
-          canary_response=$(curl -s -w "%{http_code}" -o canary_data.json "https://api.monkeytype.com/users/129CxSj68DhL8PbgNBxazC8oOa73/profile?isUid")
-
-          if [[ "$qwerty_response" != "200" || "$canary_response" != "200" ]]; then
+          qwerty_response=$(curl -s -w "%{http_code}" "https://api.monkeytype.com/users/wwezGtenkPeTFJTioEK0KZcXWXq1/profile?isUid")
+          canary_response=$(curl -s -w "%{http_code}" "https://api.monkeytype.com/users/129CxSj68DhL8PbgNBxazC8oOa73/profile?isUid")
+  
+          qwerty_status="${qwerty_response: -3}"
+          canary_status="${canary_response: -3}"
+  
+          qwerty_json="${qwerty_response::-3}"
+          canary_json="${canary_response::-3}"
+  
+          if [[ "$qwerty_status" != "200" || "$canary_status" != "200" ]]; then
             echo "Error: Failed to fetch Monkeytype data!"
             exit 1
           fi
-
-          qwerty_data=$(jq -c '{stats: .data.typingStats, bests: .data.personalBests}' qwerty_data.json)
-          canary_data=$(jq -c '{stats: .data.typingStats, bests: .data.personalBests}' canary_data.json)
-
-          echo "{\"qwerty\":$qwerty_data,\"canary\":$canary_data}" > temp_data.json
-
-          rm qwerty_data.json canary_data.json
+  
+          jq -nc \
+              --argjson qwerty "$(echo "$qwerty_json" | jq -c '{stats: .data.typingStats, bests: .data.personalBests}')" \
+              --argjson canary "$(echo "$canary_json" | jq -c '{stats: .data.typingStats, bests: .data.personalBests}')" \
+              '{"qwerty": $qwerty, "canary": $canary}' > temp_data.json
 
       - name: Restore cache
         uses: actions/cache@v3
@@ -56,13 +60,15 @@ jobs:
             exit 1
           fi
 
-          for file in $(jq -r '.files[]' "public/endpoints.json"); do
+          jq -r '.files[]' "public/endpoints.json" | while read -r file; do
             curl -s "https://api.bayrock.dev/$file" -o "public/$file"
           done
 
       - name: Check for changes
         run: |
-          if cmp --silent <(jq -c 'del(.updated)' "public/$OUTPUT_FILE") temp_data.json; then
+          if [ ! -f "public/$OUTPUT_FILE" ]; then
+            echo "Cache not found; proceeding with deployment."
+          elif cmp --silent <(jq -c 'del(.updated)' "public/$OUTPUT_FILE") temp_data.json; then
             echo "No changes detected; skipping deployment."
             echo "no_changes=true" >> $GITHUB_ENV
           else
@@ -75,6 +81,7 @@ jobs:
           jq -c --argjson timestamp "$(date +%s)" '. + {updated:$timestamp}' temp_data.json > "public/$OUTPUT_FILE"
 
       - name: Install Vercel CLI
+        if: env.no_changes == null
         run: npm install --global vercel@latest
 
       - name: Deploy to Vercel
