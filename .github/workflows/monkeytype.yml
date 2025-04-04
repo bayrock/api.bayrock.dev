@@ -68,7 +68,7 @@ jobs:
         run: |
           if [ ! -f "public/$OUTPUT_FILE" ]; then
             echo "Cache not found; proceeding with deployment."
-          elif cmp --silent <(jq -c 'del(.updated)' "public/$OUTPUT_FILE") temp_data.json; then
+          elif cmp --silent "public/$OUTPUT_FILE" temp_data.json; then
             echo "No changes detected; skipping deployment."
             echo "no_changes=true" >> $GITHUB_ENV
           else
@@ -78,7 +78,7 @@ jobs:
       - name: Update API data
         if: env.no_changes == null
         run: |
-          jq -c --argjson timestamp "$(date +%s)" '. + {updated:$timestamp}' temp_data.json > "public/$OUTPUT_FILE"
+          cp temp_data.json "public/$OUTPUT_FILE"
 
       - name: Install Vercel CLI
         if: env.no_changes == null
