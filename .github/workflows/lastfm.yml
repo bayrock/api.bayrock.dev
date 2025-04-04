@@ -60,7 +60,7 @@ jobs:
             exit 1
           fi
 
-          for file in $(jq -r '.files[]' "public/endpoints.json"); do
+          jq -r '.files[]' "public/endpoints.json" | while read -r file; do
             curl -s "https://api.bayrock.dev/$file" -o "public/$file"
           done
 
