@@ -68,7 +68,7 @@ jobs:
         run: |
           if [ ! -f "public/$OUTPUT_FILE" ]; then
             echo "Cache not found; proceeding with deployment."
-          elif cmp --silent "public/$OUTPUT_FILE" temp_data.json; then
+          elif cmp --silent <(jq -c --sort-keys '.' "public/$OUTPUT_FILE") <(jq -c --sort-keys '.' temp_data.json); then
             echo "No changes detected; skipping deployment."
             echo "no_changes=true" >> $GITHUB_ENV
           else
