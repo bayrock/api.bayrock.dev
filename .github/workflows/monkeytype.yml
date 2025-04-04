@@ -34,7 +34,7 @@ jobs:
             exit 1
           fi
   
-          jq -nc \
+          jq -nc --sort-keys \
               --argjson qwerty "$(echo "$qwerty_json" | jq -c '{stats: .data.typingStats, bests: .data.personalBests}')" \
               --argjson canary "$(echo "$canary_json" | jq -c '{stats: .data.typingStats, bests: .data.personalBests}')" \
               '{"qwerty": $qwerty, "canary": $canary}' > temp_data.json
@@ -78,7 +78,7 @@ jobs:
       - name: Update API data
         if: env.no_changes == null
         run: |
-          cp temp_data.json "public/$OUTPUT_FILE"
+          jq -c --sort-keys '.' temp_data.json > "public/$OUTPUT_FILE"
 
       - name: Install Vercel CLI
         if: env.no_changes == null

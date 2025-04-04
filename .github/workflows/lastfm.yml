@@ -34,7 +34,7 @@ jobs:
             exit 1
           fi
       
-          jq -nc \
+          jq -nc --sort-keys \
               --argjson obsession "$(echo "$loved_json" | jq -c '.lovedtracks.track[0]')" \
               --argjson recent "$(echo "$recent_json" | jq -c '.recenttracks.track')" \
               '{"obsession": $obsession, "recent": $recent}' > temp_data.json
@@ -78,7 +78,7 @@ jobs:
       - name: Update API data
         if: env.no_changes == null
         run: |
-          cp temp_data.json "public/$OUTPUT_FILE"
+          jq -c --sort-keys '.' temp_data.json > "public/$OUTPUT_FILE"
 
       - name: Install Vercel CLI
         if: env.no_changes == null
