@@ -66,6 +66,8 @@ jobs:
 
       - name: Check for changes
         run: |
+          diff <(jq -c --sort-keys '.' "public/$OUTPUT_FILE") <(jq -c --sort-keys '.' temp_data.json") || true
+
           if [ ! -f "public/$OUTPUT_FILE" ]; then
             echo "Cache not found; proceeding with deployment."
           elif cmp --silent <(jq -c --sort-keys '.' "public/$OUTPUT_FILE") <(jq -c --sort-keys '.' temp_data.json); then
